@@ -32,7 +32,6 @@ if st.button("Generate Reply"):
                     temperature=0.8
                 )
 
-                # FIXED LINE 👇  
                 reply = response.choices[0].message.content
 
                 st.subheader(f"Tone: {tone.capitalize()}")
