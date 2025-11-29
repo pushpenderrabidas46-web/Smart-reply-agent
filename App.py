@@ -1,18 +1,18 @@
-# App.py
-import streamlit as st
-import openai
 
-st.set_page_config(page_title="Smart Reply — AI Assistant", layout="centered")
+import streamlit as st
+from openai import OpenAI
+
+st.set_page_config(page_title="Smart Reply – AI Assistant", layout="centered")
 
 st.title("💬 Smart Reply — AI Assistant")
-st.write("Ask anything + Choose tone. Powered by OpenAI")
+st.write("Ask anything + Choose tone. Powered by OpenAI 🤖✨")
 
-# API key from Streamlit secrets
+# Load API key from Streamlit Secret
 if "OPENAI_API_KEY" not in st.secrets:
     st.error("OPENAI_API_KEY missing. Go to Settings → Secrets and add it.")
     st.stop()
 
-openai.api_key = st.secrets["OPENAI_API_KEY"]
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 message = st.text_input("Your message:", placeholder="e.g. Where are you?")
 tone = st.selectbox("Tone", ["friendly", "angry", "funny", "professional", "sad", "excited"])
@@ -23,22 +23,17 @@ if st.button("Generate Reply"):
     else:
         with st.spinner("Generating..."):
             try:
-                resp = openai.ChatCompletion.create(
+                response = client.chat.completions.create(
                     model="gpt-4o-mini",
                     messages=[
                         {"role": "system", "content": f"Reply in a {tone} tone."},
-                        {"role": "user", "content": message}
+                        {"role": "user", "content": message},
                     ],
                     max_tokens=200,
-                    temperature=0.8,
+                    temperature=0.8
                 )
-                reply = resp["choices"][0]["message"]["content"].strip()
+                reply = response.choices[0].message["content"].strip()
+                st.subheader(f"Tone: {tone.capitalize()}")
+                st.write(f"**AI:** {reply}")
             except Exception as e:
-                st.error(f"API error: {e}")
-                reply = None
-
-        if reply:
-            st.markdown("---")
-            st.subheader(f"Tone: {tone.capitalize()}")
-            st.write(f"**User:** {message}")
-            st.write(f"**AI:** {reply}")
+                st.error(f"API Error: {e}")
