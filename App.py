@@ -1,63 +1,44 @@
-import os
+# App.py
 import streamlit as st
-from openai import OpenAI
+import openai
 
-st.set_page_config(page_title="Smart Reply — Search", layout="wide")
+st.set_page_config(page_title="Smart Reply — AI Assistant", layout="centered")
 
-# ----------------------
-# CONFIG: API key
-# ----------------------
-API_KEY = os.getenv("OPENAI_API_KEY")
+st.title("💬 Smart Reply — AI Assistant")
+st.write("Ask anything + Choose tone. Powered by OpenAI")
 
-if not API_KEY:
-    st.error("OpenAI API key missing! Add it in Streamlit → Secrets.")
+# API key from Streamlit secrets
+if "OPENAI_API_KEY" not in st.secrets:
+    st.error("OPENAI_API_KEY missing. Go to Settings → Secrets and add it.")
     st.stop()
 
-client = OpenAI(api_key=API_KEY)
+openai.api_key = st.secrets["OPENAI_API_KEY"]
 
-# ----------------------
-# UI
-# ----------------------
-st.markdown("<h1 style='color:#0b69ff;margin:0'>💬 Smart Reply — AI Assistant</h1>", unsafe_allow_html=True)
-st.write("Ask anything + Choose tone. Powered by OpenAI 🤖✨")
+message = st.text_input("Your message:", placeholder="e.g. Where are you?")
+tone = st.selectbox("Tone", ["friendly", "angry", "funny", "professional", "sad", "excited"])
 
-col1, col2 = st.columns([3,1])
-with col1:
-    query = st.text_input("Your message:", "", placeholder="e.g. Where are you?")
-with col2:
-    tone = st.selectbox("Tone", ["friendly","professional","funny","romantic","angry"])
-    run = st.button("Generate Reply")
-
-result_area = st.empty()
-
-# ----------------------
-# Call OpenAI
-# ----------------------
-def ask_openai(prompt, model="gpt-4o-mini"):
-    try:
-        resp = client.chat.completions.create(
-            model=model,
-            messages=[{"role":"user","content": prompt}]
-        )
-        return resp.choices[0].message.content
-    except Exception as e:
-        return f"[ERROR] {e}"
-
-if run:
-    if not query.strip():
-        st.warning("Please enter a message first!")
+if st.button("Generate Reply"):
+    if not message:
+        st.warning("Please enter a message first.")
     else:
-        prompt = f"Reply to this message in a {tone} tone: {query}"
-        with st.spinner("AI thinking..."):
-            answer = ask_openai(prompt)
+        with st.spinner("Generating..."):
+            try:
+                resp = openai.ChatCompletion.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {"role": "system", "content": f"Reply in a {tone} tone."},
+                        {"role": "user", "content": message}
+                    ],
+                    max_tokens=200,
+                    temperature=0.8,
+                )
+                reply = resp["choices"][0]["message"]["content"].strip()
+            except Exception as e:
+                st.error(f"API error: {e}")
+                reply = None
 
-        card_html = f"""
-        <div style="background:#fff;border-radius:12px;padding:16px;margin-top:10px;
-                    box-shadow:0 6px 18px rgba(11,105,255,0.06);">
-          <div style="font-weight:700;color:#111;margin-bottom:8px;">Tone: {tone.title()}</div>
-          <div style="color:#222;font-size:15px;margin-bottom:10px">User: {query}</div>
-          <hr>
-          <div style="font-size:15px;color:#111;white-space:pre-wrap"><b>AI:</b> {answer}</div>
-        </div>
-        """
-        result_area.markdown(card_html, unsafe_allow_html=True)
+        if reply:
+            st.markdown("---")
+            st.subheader(f"Tone: {tone.capitalize()}")
+            st.write(f"**User:** {message}")
+            st.write(f"**AI:** {reply}")
