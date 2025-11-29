@@ -1,4 +1,3 @@
-
 import streamlit as st
 from openai import OpenAI
 
@@ -32,8 +31,12 @@ if st.button("Generate Reply"):
                     max_tokens=200,
                     temperature=0.8
                 )
-                reply = response.choices[0].message["content"].strip()
+
+                # FIXED LINE 👇  
+                reply = response.choices[0].message.content
+
                 st.subheader(f"Tone: {tone.capitalize()}")
                 st.write(f"**AI:** {reply}")
+
             except Exception as e:
                 st.error(f"API Error: {e}")
